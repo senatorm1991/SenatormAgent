@@ -1,13 +1,18 @@
-name: Build APK
+name: Release
 on:
   push:
   workflow_dispatch:
+env:
+  KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: unzip -q "$(ls *.zip | head -1)"
+      - name: Check signing secret
+        run: test -n "$KEYSTORE_BASE64" || { echo "Secret KEYSTORE_BASE64 is not set"; exit 1; }
+      - run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -15,9 +20,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
-      - run: gradle assembleDebug --no-daemon
+      - run: gradle assembleRelease bundleRelease --no-daemon
         working-directory: SenatormAgent
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       - uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: SenatormAgent/app/build/outputs/apk/debug/app-debug.apk
+          name: release
+          path: |
+            SenatormAgent/app/build/outputs/apk/release/app-release.apk
+            SenatormAgent/app/build/outputs/bundle/release/app-release.aab
