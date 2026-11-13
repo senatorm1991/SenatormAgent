@@ -2,6 +2,8 @@ name: Release
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 env:
   KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 jobs:
@@ -27,9 +29,11 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      - uses: actions/upload-artifact@v4
+      - uses: softprops/action-gh-release@v2
         with:
-          name: release
-          path: |
+          tag_name: v1.0.${{ github.run_number }}
+          name: Eagle Agent ${{ github.run_number }}
+          make_latest: true
+          files: |
             SenatormAgent/app/build/outputs/apk/release/app-release.apk
             SenatormAgent/app/build/outputs/bundle/release/app-release.aab
